@@ -15,7 +15,11 @@ dist/
 *.log
 
 # Environment variables
-.env
+.env*
+
+# Tooling and runtime data
+.claude/
+.kitebot/
 
 # OS files
 .DS_Store

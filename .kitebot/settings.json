@@ -1,7 +1,0 @@
-{
-  "channel": "telegram",
-  "model": "haiku",
-  "discord_bot_token": "",
-  "telegram_bot_token": "8207508069:AAE6uC19eHJyn1eA1aGPHJOXMXR2lDiCiwI",
-  "heartbeat_interval": 60
-}
