@@ -1,10 +1,10 @@
-# TinyClaw 🦞
+# Kitebot 🦞
 
 Minimal multi-channel AI assistant with Discord and WhatsApp integration.
 
-## 🎯 What is TinyClaw?
+## 🎯 What is Kitebot?
 
-TinyClaw is a lightweight wrapper around [Claude Code](https://claude.com/claude-code) that:
+Kitebot is a lightweight wrapper around [Claude Code](https://claude.com/claude-code) that:
 
 - ✅ Connects Discord (via bot token) and WhatsApp (via QR code)
 - ✅ Processes messages sequentially (no race conditions)
@@ -52,13 +52,13 @@ TinyClaw is a lightweight wrapper around [Claude Code](https://claude.com/claude
 ### Installation
 
 ```bash
-cd /path/to/tinyclaw
+cd /path/to/kitebot
 
 # Install dependencies
 npm install
 
-# Start TinyClaw (first run triggers setup wizard)
-./tinyclaw.sh start
+# Start Kitebot (first run triggers setup wizard)
+./kitebot.sh start
 ```
 
 ### First Run - Setup Wizard
@@ -67,7 +67,7 @@ On first start, you'll see an interactive setup wizard:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  TinyClaw - Setup Wizard
+  Kitebot - Setup Wizard
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Which messaging channel do you want to use?
@@ -103,7 +103,7 @@ Interval [default: 500]: 500
 
 ✓ Heartbeat interval: 500s
 
-✓ Configuration saved to .tinyclaw/settings.json
+✓ Configuration saved to .kitebot/settings.json
 ```
 
 ### Discord Setup
@@ -143,44 +143,44 @@ You'll get a response! 🤖
 ## 📋 Commands
 
 ```bash
-# Start TinyClaw
-./tinyclaw.sh start
+# Start Kitebot
+./kitebot.sh start
 
 # Run setup wizard (change channels/model/heartbeat)
-./tinyclaw.sh setup
+./kitebot.sh setup
 
 # Check status
-./tinyclaw.sh status
+./kitebot.sh status
 
 # Send manual message
-./tinyclaw.sh send "What's the weather?"
+./kitebot.sh send "What's the weather?"
 
 # Reset conversation
-./tinyclaw.sh reset
+./kitebot.sh reset
 
 # Reset channel authentication
-./tinyclaw.sh channels reset whatsapp  # Clear WhatsApp session
-./tinyclaw.sh channels reset discord   # Shows Discord reset instructions
+./kitebot.sh channels reset whatsapp  # Clear WhatsApp session
+./kitebot.sh channels reset discord   # Shows Discord reset instructions
 
 # Switch Claude model
-./tinyclaw.sh model           # Show current model
-./tinyclaw.sh model sonnet    # Switch to Sonnet (fast)
-./tinyclaw.sh model opus      # Switch to Opus (smartest)
+./kitebot.sh model           # Show current model
+./kitebot.sh model sonnet    # Switch to Sonnet (fast)
+./kitebot.sh model opus      # Switch to Opus (smartest)
 
 # View logs
-./tinyclaw.sh logs whatsapp   # WhatsApp activity
-./tinyclaw.sh logs discord    # Discord activity
-./tinyclaw.sh logs queue      # Queue processing
-./tinyclaw.sh logs heartbeat  # Heartbeat checks
+./kitebot.sh logs whatsapp   # WhatsApp activity
+./kitebot.sh logs discord    # Discord activity
+./kitebot.sh logs queue      # Queue processing
+./kitebot.sh logs heartbeat  # Heartbeat checks
 
 # Attach to tmux
-./tinyclaw.sh attach
+./kitebot.sh attach
 
 # Restart
-./tinyclaw.sh restart
+./kitebot.sh restart
 
 # Stop
-./tinyclaw.sh stop
+./kitebot.sh stop
 ```
 
 ## 🔧 Components
@@ -191,7 +191,7 @@ You'll get a response! 🤖
 - Configures channels (Discord/WhatsApp/Both)
 - Collects Discord bot token
 - Selects Claude model
-- Writes to `.tinyclaw/settings.json`
+- Writes to `.kitebot/settings.json`
 
 ### 2. discord-client.ts
 
@@ -221,7 +221,7 @@ You'll get a response! 🤖
 - Sends heartbeat via queue
 - Keeps conversation active
 
-### 6. tinyclaw.sh
+### 6. kitebot.sh
 
 - Main orchestrator
 - Manages tmux session
@@ -233,14 +233,14 @@ You'll get a response! 🤖
 Discord/WhatsApp message arrives
        ↓
 Client writes to:
-  .tinyclaw/queue/incoming/{discord|whatsapp}_<id>.json
+  .kitebot/queue/incoming/{discord|whatsapp}_<id>.json
        ↓
 queue-processor.ts picks it up
        ↓
 Runs: claude -c -p "message"
        ↓
 Writes to:
-  .tinyclaw/queue/outgoing/{discord|whatsapp}_<id>.json
+  .kitebot/queue/outgoing/{discord|whatsapp}_<id>.json
        ↓
 Client reads and sends response
        ↓
@@ -250,11 +250,11 @@ User receives reply
 ## 📁 Directory Structure
 
 ```
-tinyclaw/
+kitebot/
 ├── .claude/              # Claude Code config
 │   ├── settings.json     # Hooks config
 │   └── hooks/            # Hook scripts
-├── .tinyclaw/            # TinyClaw data
+├── .kitebot/            # Kitebot data
 │   ├── settings.json     # Configuration (channel, model, tokens)
 │   ├── queue/
 │   │   ├── incoming/     # New messages
@@ -274,7 +274,7 @@ tinyclaw/
 │   └── queue-processor.ts   # Message processing
 ├── dist/                 # TypeScript build output
 ├── setup-wizard.sh       # Interactive setup
-├── tinyclaw.sh           # Main script
+├── kitebot.sh           # Main script
 └── heartbeat-cron.sh     # Health checks
 ```
 
@@ -283,7 +283,7 @@ tinyclaw/
 ### Via CLI
 
 ```bash
-./tinyclaw.sh reset
+./kitebot.sh reset
 ```
 
 ### Via WhatsApp
@@ -296,7 +296,7 @@ Next message starts fresh (no conversation history).
 
 ### Settings File
 
-All configuration is stored in `.tinyclaw/settings.json`:
+All configuration is stored in `.kitebot/settings.json`:
 
 ```json
 {
@@ -309,7 +309,7 @@ All configuration is stored in `.tinyclaw/settings.json`:
 
 To reconfigure, run:
 ```bash
-./tinyclaw.sh setup
+./kitebot.sh setup
 ```
 
 The heartbeat interval is in seconds (default: 500s = ~8 minutes).
@@ -317,7 +317,7 @@ This controls how often Claude proactively checks in.
 
 ### Heartbeat Prompt
 
-Edit `.tinyclaw/heartbeat.md`:
+Edit `.kitebot/heartbeat.md`:
 
 ```markdown
 Check for:
@@ -335,26 +335,26 @@ Take action if needed.
 
 ```bash
 # WhatsApp activity
-tail -f .tinyclaw/logs/whatsapp.log
+tail -f .kitebot/logs/whatsapp.log
 
 # Queue processing
-tail -f .tinyclaw/logs/queue.log
+tail -f .kitebot/logs/queue.log
 
 # Heartbeat checks
-tail -f .tinyclaw/logs/heartbeat.log
+tail -f .kitebot/logs/heartbeat.log
 
 # All logs
-./tinyclaw.sh logs daemon
+./kitebot.sh logs daemon
 ```
 
 ### Watch Queue
 
 ```bash
 # Incoming messages
-watch -n 1 'ls -lh .tinyclaw/queue/incoming/'
+watch -n 1 'ls -lh .kitebot/queue/incoming/'
 
 # Outgoing responses
-watch -n 1 'ls -lh .tinyclaw/queue/outgoing/'
+watch -n 1 'ls -lh .kitebot/queue/outgoing/'
 ```
 
 ## 🎨 Features
@@ -379,7 +379,7 @@ Discord and WhatsApp work seamlessly together. Add more channels easily:
 // telegram-client.ts
 // Write to queue
 fs.writeFileSync(
-  '.tinyclaw/queue/incoming/telegram_<id>.json',
+  '.kitebot/queue/incoming/telegram_<id>.json',
   JSON.stringify({
     channel: 'telegram',
     message,
@@ -408,15 +408,15 @@ WhatsApp session persists across restarts:
 
 ```bash
 # First time: Scan QR code
-./tinyclaw.sh start
+./kitebot.sh start
 
 # Subsequent starts: Auto-connects
-./tinyclaw.sh restart
+./kitebot.sh restart
 ```
 
 ## 🔐 Security
 
-- WhatsApp session stored locally in `.tinyclaw/whatsapp-session/`
+- WhatsApp session stored locally in `.kitebot/whatsapp-session/`
 - Queue files are local (no network exposure)
 - Each channel handles its own authentication
 - Claude runs with your user permissions
@@ -427,41 +427,41 @@ WhatsApp session persists across restarts:
 
 ```bash
 # Check logs
-./tinyclaw.sh logs whatsapp
+./kitebot.sh logs whatsapp
 
 # Reset WhatsApp authentication
-./tinyclaw.sh channels reset whatsapp
-./tinyclaw.sh restart
+./kitebot.sh channels reset whatsapp
+./kitebot.sh restart
 ```
 
 ### Discord not connecting
 
 ```bash
 # Check logs
-./tinyclaw.sh logs discord
+./kitebot.sh logs discord
 
 # Update Discord bot token
-./tinyclaw.sh setup
+./kitebot.sh setup
 ```
 
 ### Messages not processing
 
 ```bash
 # Check queue processor
-./tinyclaw.sh status
+./kitebot.sh status
 
 # Check queue
-ls -la .tinyclaw/queue/incoming/
+ls -la .kitebot/queue/incoming/
 
 # View queue logs
-./tinyclaw.sh logs queue
+./kitebot.sh logs queue
 ```
 
 ### QR code not showing
 
 ```bash
 # Attach to tmux to see the QR code
-tmux attach -t tinyclaw
+tmux attach -t kitebot
 ```
 
 ## 🚀 Production Deployment
@@ -469,22 +469,22 @@ tmux attach -t tinyclaw
 ### Using systemd
 
 ```bash
-sudo systemctl enable tinyclaw
-sudo systemctl start tinyclaw
+sudo systemctl enable kitebot
+sudo systemctl start kitebot
 ```
 
 ### Using PM2
 
 ```bash
-pm2 start tinyclaw.sh --name tinyclaw
+pm2 start kitebot.sh --name kitebot
 pm2 save
 ```
 
 ### Using supervisor
 
 ```ini
-[program:tinyclaw]
-command=/path/to/tinyclaw/tinyclaw.sh start
+[program:kitebot]
+command=/path/to/kitebot/kitebot.sh start
 autostart=true
 autorestart=true
 ```
@@ -530,4 +530,4 @@ MIT
 
 ---
 
-**TinyClaw - Small but mighty!** 🦞✨
+**Kitebot - Small but mighty!** 🦞✨

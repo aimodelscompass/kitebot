@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * WhatsApp Client for TinyClaw Simple
+ * WhatsApp Client for Kitebot Simple
  * Writes messages to queue and reads responses
  * Does NOT call Claude directly - that's handled by queue-processor
  */
@@ -11,10 +11,10 @@ import fs from 'fs';
 import path from 'path';
 
 const SCRIPT_DIR = path.resolve(__dirname, '..');
-const QUEUE_INCOMING = path.join(SCRIPT_DIR, '.tinyclaw/queue/incoming');
-const QUEUE_OUTGOING = path.join(SCRIPT_DIR, '.tinyclaw/queue/outgoing');
-const LOG_FILE = path.join(SCRIPT_DIR, '.tinyclaw/logs/whatsapp.log');
-const SESSION_DIR = path.join(SCRIPT_DIR, '.tinyclaw/whatsapp-session');
+const QUEUE_INCOMING = path.join(SCRIPT_DIR, '.kitebot/queue/incoming');
+const QUEUE_OUTGOING = path.join(SCRIPT_DIR, '.kitebot/queue/outgoing');
+const LOG_FILE = path.join(SCRIPT_DIR, '.kitebot/logs/whatsapp.log');
+const SESSION_DIR = path.join(SCRIPT_DIR, '.kitebot/whatsapp-session');
 
 // Ensure directories exist
 [QUEUE_INCOMING, QUEUE_OUTGOING, path.dirname(LOG_FILE), SESSION_DIR].forEach(dir => {
@@ -86,14 +86,14 @@ client.on('qr', (qr: string) => {
     qrcode.generate(qr, { small: true });
 
     // Save to file for tinyclaw.sh to display (avoids tmux capture distortion)
-    const channelsDir = path.join(SCRIPT_DIR, '.tinyclaw/channels');
+    const channelsDir = path.join(SCRIPT_DIR, '.kitebot/channels');
     if (!fs.existsSync(channelsDir)) {
         fs.mkdirSync(channelsDir, { recursive: true });
     }
     const qrFile = path.join(channelsDir, 'whatsapp_qr.txt');
     qrcode.generate(qr, { small: true }, (code) => {
         fs.writeFileSync(qrFile, code);
-        log('INFO', 'QR code saved to .tinyclaw/channels/whatsapp_qr.txt');
+        log('INFO', 'QR code saved to .kitebot/channels/whatsapp_qr.txt');
     });
 
     console.log('\n');
@@ -111,7 +111,7 @@ client.on('ready', () => {
     log('INFO', 'Listening for messages...');
 
     // Create ready flag for tinyclaw.sh
-    const readyFile = path.join(SCRIPT_DIR, '.tinyclaw/channels/whatsapp_ready');
+    const readyFile = path.join(SCRIPT_DIR, '.kitebot/channels/whatsapp_ready');
     fs.writeFileSync(readyFile, Date.now().toString());
 });
 
@@ -149,7 +149,7 @@ client.on('message_create', async (message: Message) => {
             log('INFO', '🔄 Reset command received');
 
             // Create reset flag
-            const resetFlagPath = path.join(SCRIPT_DIR, '.tinyclaw/reset_flag');
+            const resetFlagPath = path.join(SCRIPT_DIR, '.kitebot/reset_flag');
             fs.writeFileSync(resetFlagPath, 'reset');
 
             // Reply immediately
@@ -249,7 +249,7 @@ client.on('disconnected', (reason: string) => {
     log('WARN', `WhatsApp disconnected: ${reason}`);
 
     // Remove ready flag
-    const readyFile = path.join(SCRIPT_DIR, '.tinyclaw/channels/whatsapp_ready');
+    const readyFile = path.join(SCRIPT_DIR, '.kitebot/channels/whatsapp_ready');
     if (fs.existsSync(readyFile)) {
         fs.unlinkSync(readyFile);
     }
@@ -260,7 +260,7 @@ process.on('SIGINT', async () => {
     log('INFO', 'Shutting down WhatsApp client...');
 
     // Remove ready flag
-    const readyFile = path.join(SCRIPT_DIR, '.tinyclaw/channels/whatsapp_ready');
+    const readyFile = path.join(SCRIPT_DIR, '.kitebot/channels/whatsapp_ready');
     if (fs.existsSync(readyFile)) {
         fs.unlinkSync(readyFile);
     }
@@ -273,7 +273,7 @@ process.on('SIGTERM', async () => {
     log('INFO', 'Shutting down WhatsApp client...');
 
     // Remove ready flag
-    const readyFile = path.join(SCRIPT_DIR, '.tinyclaw/channels/whatsapp_ready');
+    const readyFile = path.join(SCRIPT_DIR, '.kitebot/channels/whatsapp_ready');
     if (fs.existsSync(readyFile)) {
         fs.unlinkSync(readyFile);
     }

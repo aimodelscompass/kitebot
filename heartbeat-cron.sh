@@ -2,10 +2,10 @@
 # Heartbeat - Periodically prompts Claude via queue system
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HEARTBEAT_FILE="$SCRIPT_DIR/.tinyclaw/heartbeat.md"
-LOG_FILE="$SCRIPT_DIR/.tinyclaw/logs/heartbeat.log"
-QUEUE_INCOMING="$SCRIPT_DIR/.tinyclaw/queue/incoming"
-SETTINGS_FILE="$SCRIPT_DIR/.tinyclaw/settings.json"
+HEARTBEAT_FILE="$SCRIPT_DIR/.kitebot/heartbeat.md"
+LOG_FILE="$SCRIPT_DIR/.kitebot/logs/heartbeat.log"
+QUEUE_INCOMING="$SCRIPT_DIR/.kitebot/queue/incoming"
+SETTINGS_FILE="$SCRIPT_DIR/.kitebot/settings.json"
 
 # Read interval from settings.json, default to 500
 if [ -f "$SETTINGS_FILE" ]; then
@@ -54,7 +54,7 @@ EOF
     sleep 10
 
     # Check for response (optional logging)
-    RESPONSE_FILE="$SCRIPT_DIR/.tinyclaw/queue/outgoing/${MESSAGE_ID}.json"
+    RESPONSE_FILE="$SCRIPT_DIR/.kitebot/queue/outgoing/${MESSAGE_ID}.json"
     if [ -f "$RESPONSE_FILE" ]; then
         RESPONSE=$(cat "$RESPONSE_FILE" | jq -r '.message' 2>/dev/null || echo "")
         if [ -n "$RESPONSE" ]; then

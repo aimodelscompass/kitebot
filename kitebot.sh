@@ -1,10 +1,10 @@
 #!/bin/bash
-# TinyClaw Simple - Main daemon using tmux + claude -c -p + WhatsApp + Discord
+# Kitebot Simple - Main daemon using tmux + claude -c -p + WhatsApp + Discord
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TMUX_SESSION="tinyclaw"
-LOG_DIR="$SCRIPT_DIR/.tinyclaw/logs"
-SETTINGS_FILE="$SCRIPT_DIR/.tinyclaw/settings.json"
+TMUX_SESSION="kitebot"
+LOG_DIR="$SCRIPT_DIR/.kitebot/logs"
+SETTINGS_FILE="$SCRIPT_DIR/.kitebot/settings.json"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -27,6 +27,7 @@ load_settings() {
     CHANNEL=$(grep -o '"channel"[[:space:]]*:[[:space:]]*"[^"]*"' "$SETTINGS_FILE" | cut -d'"' -f4)
     MODEL=$(grep -o '"model"[[:space:]]*:[[:space:]]*"[^"]*"' "$SETTINGS_FILE" | cut -d'"' -f4)
     DISCORD_TOKEN=$(grep -o '"discord_bot_token"[[:space:]]*:[[:space:]]*"[^"]*"' "$SETTINGS_FILE" | cut -d'"' -f4)
+    TELEGRAM_TOKEN=$(grep -o '"telegram_bot_token"[[:space:]]*:[[:space:]]*"[^"]*"' "$SETTINGS_FILE" | cut -d'"' -f4)
 
     return 0
 }
@@ -43,7 +44,7 @@ start_daemon() {
         return 1
     fi
 
-    log "Starting TinyClaw daemon..."
+    log "Starting Kitebot daemon..."
 
     # Check if Node.js dependencies are installed
     if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
@@ -53,7 +54,7 @@ start_daemon() {
     fi
 
     # Build TypeScript if needed
-    if [ ! -d "$SCRIPT_DIR/dist" ] || [ "$SCRIPT_DIR/src/whatsapp-client.ts" -nt "$SCRIPT_DIR/dist/whatsapp-client.js" ] || [ "$SCRIPT_DIR/src/queue-processor.ts" -nt "$SCRIPT_DIR/dist/queue-processor.js" ] || [ "$SCRIPT_DIR/src/discord-client.ts" -nt "$SCRIPT_DIR/dist/discord-client.js" ]; then
+    if [ ! -d "$SCRIPT_DIR/dist" ] || [ "$SCRIPT_DIR/src/whatsapp-client.ts" -nt "$SCRIPT_DIR/dist/whatsapp-client.js" ] || [ "$SCRIPT_DIR/src/queue-processor.ts" -nt "$SCRIPT_DIR/dist/queue-processor.js" ] || [ "$SCRIPT_DIR/src/discord-client.ts" -nt "$SCRIPT_DIR/dist/discord-client.js" ] || [ "$SCRIPT_DIR/src/telegram-client.ts" -nt "$SCRIPT_DIR/dist/telegram-client.js" ]; then
         echo -e "${YELLOW}Building TypeScript...${NC}"
         cd "$SCRIPT_DIR"
         npm run build
@@ -75,37 +76,45 @@ start_daemon() {
     # Set channel flags
     HAS_DISCORD=false
     HAS_WHATSAPP=false
+    HAS_TELEGRAM=false
 
     case "$CHANNEL" in
         discord) HAS_DISCORD=true ;;
         whatsapp) HAS_WHATSAPP=true ;;
+        telegram) HAS_TELEGRAM=true ;;
         both) HAS_DISCORD=true; HAS_WHATSAPP=true ;;
+        all) HAS_DISCORD=true; HAS_WHATSAPP=true; HAS_TELEGRAM=true ;;
         *)
             echo -e "${RED}Invalid channel config: $CHANNEL${NC}"
-            echo "Run './tinyclaw.sh setup' to reconfigure"
+            echo "Run './kitebot.sh setup' to reconfigure"
             return 1
             ;;
     esac
 
-    # Validate Discord token if Discord is enabled
-    if [ "$HAS_DISCORD" = true ] && [ -z "$DISCORD_TOKEN" ]; then
-        echo -e "${RED}Discord is configured but bot token is missing${NC}"
-        echo "Run './tinyclaw.sh setup' to reconfigure"
+    # Validate Telegram token if Telegram is enabled
+    if [ "$HAS_TELEGRAM" = true ] && [ -z "$TELEGRAM_TOKEN" ]; then
+        echo -e "${RED}Telegram is configured but bot token is missing${NC}"
+        echo "Run './kitebot.sh setup' to reconfigure"
         return 1
     fi
 
-    # Write Discord token to .env for the Node.js client
+    # Write tokens to .env for the Node.js clients
+    # Initialize or update .env
+    [ ! -f "$SCRIPT_DIR/.env" ] && touch "$SCRIPT_DIR/.env"
+
     if [ "$HAS_DISCORD" = true ]; then
-        if [ -f "$SCRIPT_DIR/.env" ]; then
-            # Update existing .env
-            if grep -q "^DISCORD_BOT_TOKEN=" "$SCRIPT_DIR/.env"; then
-                sed -i.bak "s/^DISCORD_BOT_TOKEN=.*/DISCORD_BOT_TOKEN=$DISCORD_TOKEN/" "$SCRIPT_DIR/.env"
-            else
-                echo "DISCORD_BOT_TOKEN=$DISCORD_TOKEN" >> "$SCRIPT_DIR/.env"
-            fi
+        if grep -q "^DISCORD_BOT_TOKEN=" "$SCRIPT_DIR/.env"; then
+            sed -i.bak "s/^DISCORD_BOT_TOKEN=.*/DISCORD_BOT_TOKEN=$DISCORD_TOKEN/" "$SCRIPT_DIR/.env"
         else
-            # Create new .env
-            echo "DISCORD_BOT_TOKEN=$DISCORD_TOKEN" > "$SCRIPT_DIR/.env"
+            echo "DISCORD_BOT_TOKEN=$DISCORD_TOKEN" >> "$SCRIPT_DIR/.env"
+        fi
+    fi
+
+    if [ "$HAS_TELEGRAM" = true ]; then
+        if grep -q "^TELEGRAM_BOT_TOKEN=" "$SCRIPT_DIR/.env"; then
+            sed -i.bak "s/^TELEGRAM_BOT_TOKEN=.*/TELEGRAM_BOT_TOKEN=$TELEGRAM_TOKEN/" "$SCRIPT_DIR/.env"
+        else
+            echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_TOKEN" >> "$SCRIPT_DIR/.env"
         fi
     fi
 
@@ -113,23 +122,60 @@ start_daemon() {
     echo -e "${BLUE}Channels:${NC}"
     [ "$HAS_DISCORD" = true ] && echo -e "  ${GREEN}✓${NC} Discord"
     [ "$HAS_WHATSAPP" = true ] && echo -e "  ${GREEN}✓${NC} WhatsApp"
+    [ "$HAS_TELEGRAM" = true ] && echo -e "  ${GREEN}✓${NC} Telegram"
     echo ""
 
     # Build log tail command based on available channels
-    LOG_TAIL_CMD="tail -f .tinyclaw/logs/queue.log"
-    if [ "$HAS_DISCORD" = true ]; then
-        LOG_TAIL_CMD="$LOG_TAIL_CMD .tinyclaw/logs/discord.log"
-    fi
-    if [ "$HAS_WHATSAPP" = true ]; then
-        LOG_TAIL_CMD="$LOG_TAIL_CMD .tinyclaw/logs/whatsapp.log"
-    fi
+    LOG_TAIL_CMD="tail -f .kitebot/logs/queue.log"
+    [ "$HAS_DISCORD" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .kitebot/logs/discord.log"
+    [ "$HAS_WHATSAPP" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .kitebot/logs/whatsapp.log"
+    [ "$HAS_TELEGRAM" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .kitebot/logs/telegram.log"
 
-    tmux new-session -d -s "$TMUX_SESSION" -n "tinyclaw" -c "$SCRIPT_DIR"
+    tmux new-session -d -s "$TMUX_SESSION" -n "kitebot" -c "$SCRIPT_DIR"
 
-    if [ "$HAS_WHATSAPP" = true ] && [ "$HAS_DISCORD" = true ]; then
-        # Both channels: 5 panes
+    # Count channels
+    NUM_CHANNELS=0
+    [ "$HAS_WHATSAPP" = true ] && ((NUM_CHANNELS++))
+    [ "$HAS_DISCORD" = true ] && ((NUM_CHANNELS++))
+    [ "$HAS_TELEGRAM" = true ] && ((NUM_CHANNELS++))
+
+    # Initialize WHATSAPP_PANE
+    WHATSAPP_PANE=-1
+
+    if [ "$NUM_CHANNELS" -eq 3 ]; then
+        # All 3 channels: 6 panes
+        # ┌────────┬────────┬────────┬────────┐
+        # │   WA   │   DC   │   TG   │ Queue  │
+        # ├────────┴────────┴────────┼────────┤
+        # │       Heartbeat          │  Logs  │
+        # └──────────────────────────┴────────┘
+        tmux split-window -v -t "$TMUX_SESSION" -c "$SCRIPT_DIR"
+        tmux split-window -h -t "$TMUX_SESSION:0.0" -c "$SCRIPT_DIR"
+        tmux split-window -h -t "$TMUX_SESSION:0.1" -c "$SCRIPT_DIR"
+        tmux split-window -h -t "$TMUX_SESSION:0.2" -c "$SCRIPT_DIR"
+        tmux split-window -h -t "$TMUX_SESSION:0.4" -c "$SCRIPT_DIR"
+
+        tmux send-keys -t "$TMUX_SESSION:0.0" "cd '$SCRIPT_DIR' && node dist/whatsapp-client.js" C-m
+        tmux send-keys -t "$TMUX_SESSION:0.1" "cd '$SCRIPT_DIR' && node dist/discord-client.js" C-m
+        tmux send-keys -t "$TMUX_SESSION:0.2" "cd '$SCRIPT_DIR' && node dist/telegram-client.js" C-m
+        tmux send-keys -t "$TMUX_SESSION:0.3" "cd '$SCRIPT_DIR' && node dist/queue-processor.js" C-m
+        tmux send-keys -t "$TMUX_SESSION:0.4" "cd '$SCRIPT_DIR' && ./heartbeat-cron.sh" C-m
+        tmux send-keys -t "$TMUX_SESSION:0.5" "cd '$SCRIPT_DIR' && $LOG_TAIL_CMD" C-m
+
+        tmux select-pane -t "$TMUX_SESSION:0.0" -T "WhatsApp"
+        tmux select-pane -t "$TMUX_SESSION:0.1" -T "Discord"
+        tmux select-pane -t "$TMUX_SESSION:0.2" -T "Telegram"
+        tmux select-pane -t "$TMUX_SESSION:0.3" -T "Queue"
+        tmux select-pane -t "$TMUX_SESSION:0.4" -T "Heartbeat"
+        tmux select-pane -t "$TMUX_SESSION:0.5" -T "Logs"
+
+        PANE_COUNT=6
+        WHATSAPP_PANE=0
+
+    elif [ "$NUM_CHANNELS" -eq 2 ]; then
+        # 2 channels: 5 panes
         # ┌──────────┬──────────┬──────────┐
-        # │ WhatsApp │ Discord  │  Queue   │
+        # │  Chan 1  │  Chan 2  │  Queue   │
         # ├──────────┴──────────┼──────────┤
         # │     Heartbeat       │   Logs   │
         # └─────────────────────┴──────────┘
@@ -138,49 +184,47 @@ start_daemon() {
         tmux split-window -h -t "$TMUX_SESSION:0.1" -c "$SCRIPT_DIR"
         tmux split-window -h -t "$TMUX_SESSION:0.3" -c "$SCRIPT_DIR"
 
-        tmux send-keys -t "$TMUX_SESSION:0.0" "cd '$SCRIPT_DIR' && node dist/whatsapp-client.js" C-m
-        tmux send-keys -t "$TMUX_SESSION:0.1" "cd '$SCRIPT_DIR' && node dist/discord-client.js" C-m
+        CHAN1_CMD=""
+        CHAN1_TITLE=""
+        CHAN2_CMD=""
+        CHAN2_TITLE=""
+
+        if [ "$HAS_WHATSAPP" = true ]; then
+            CHAN1_CMD="node dist/whatsapp-client.js"
+            CHAN1_TITLE="WhatsApp"
+            WHATSAPP_PANE=0
+            if [ "$HAS_DISCORD" = true ]; then
+                CHAN2_CMD="node dist/discord-client.js"
+                CHAN2_TITLE="Discord"
+            else
+                CHAN2_CMD="node dist/telegram-client.js"
+                CHAN2_TITLE="Telegram"
+            fi
+        elif [ "$HAS_DISCORD" = true ]; then
+            CHAN1_CMD="node dist/discord-client.js"
+            CHAN1_TITLE="Discord"
+            CHAN2_CMD="node dist/telegram-client.js"
+            CHAN2_TITLE="Telegram"
+        fi
+
+        tmux send-keys -t "$TMUX_SESSION:0.0" "cd '$SCRIPT_DIR' && $CHAN1_CMD" C-m
+        tmux send-keys -t "$TMUX_SESSION:0.1" "cd '$SCRIPT_DIR' && $CHAN2_CMD" C-m
         tmux send-keys -t "$TMUX_SESSION:0.2" "cd '$SCRIPT_DIR' && node dist/queue-processor.js" C-m
         tmux send-keys -t "$TMUX_SESSION:0.3" "cd '$SCRIPT_DIR' && ./heartbeat-cron.sh" C-m
         tmux send-keys -t "$TMUX_SESSION:0.4" "cd '$SCRIPT_DIR' && $LOG_TAIL_CMD" C-m
 
-        tmux select-pane -t "$TMUX_SESSION:0.0" -T "WhatsApp"
-        tmux select-pane -t "$TMUX_SESSION:0.1" -T "Discord"
+        tmux select-pane -t "$TMUX_SESSION:0.0" -T "$CHAN1_TITLE"
+        tmux select-pane -t "$TMUX_SESSION:0.1" -T "$CHAN2_TITLE"
         tmux select-pane -t "$TMUX_SESSION:0.2" -T "Queue"
         tmux select-pane -t "$TMUX_SESSION:0.3" -T "Heartbeat"
         tmux select-pane -t "$TMUX_SESSION:0.4" -T "Logs"
 
         PANE_COUNT=5
-        WHATSAPP_PANE=0
-
-    elif [ "$HAS_DISCORD" = true ]; then
-        # Discord only: 4 panes (2x2 grid)
-        # ┌──────────┬──────────┐
-        # │ Discord  │  Queue   │
-        # ├──────────┼──────────┤
-        # │Heartbeat │   Logs   │
-        # └──────────┴──────────┘
-        tmux split-window -v -t "$TMUX_SESSION" -c "$SCRIPT_DIR"
-        tmux split-window -h -t "$TMUX_SESSION:0.0" -c "$SCRIPT_DIR"
-        tmux split-window -h -t "$TMUX_SESSION:0.2" -c "$SCRIPT_DIR"
-
-        tmux send-keys -t "$TMUX_SESSION:0.0" "cd '$SCRIPT_DIR' && node dist/discord-client.js" C-m
-        tmux send-keys -t "$TMUX_SESSION:0.1" "cd '$SCRIPT_DIR' && node dist/queue-processor.js" C-m
-        tmux send-keys -t "$TMUX_SESSION:0.2" "cd '$SCRIPT_DIR' && ./heartbeat-cron.sh" C-m
-        tmux send-keys -t "$TMUX_SESSION:0.3" "cd '$SCRIPT_DIR' && $LOG_TAIL_CMD" C-m
-
-        tmux select-pane -t "$TMUX_SESSION:0.0" -T "Discord"
-        tmux select-pane -t "$TMUX_SESSION:0.1" -T "Queue"
-        tmux select-pane -t "$TMUX_SESSION:0.2" -T "Heartbeat"
-        tmux select-pane -t "$TMUX_SESSION:0.3" -T "Logs"
-
-        PANE_COUNT=4
-        WHATSAPP_PANE=-1
 
     else
-        # WhatsApp only: 4 panes (2x2 grid)
+        # 1 channel: 4 panes (2x2 grid)
         # ┌──────────┬──────────┐
-        # │ WhatsApp │  Queue   │
+        # │  Channel │  Queue   │
         # ├──────────┼──────────┤
         # │Heartbeat │   Logs   │
         # └──────────┴──────────┘
@@ -188,22 +232,36 @@ start_daemon() {
         tmux split-window -h -t "$TMUX_SESSION:0.0" -c "$SCRIPT_DIR"
         tmux split-window -h -t "$TMUX_SESSION:0.2" -c "$SCRIPT_DIR"
 
-        tmux send-keys -t "$TMUX_SESSION:0.0" "cd '$SCRIPT_DIR' && node dist/whatsapp-client.js" C-m
+        CHAN_CMD=""
+        CHAN_TITLE=""
+
+        if [ "$HAS_WHATSAPP" = true ]; then
+            CHAN_CMD="node dist/whatsapp-client.js"
+            CHAN_TITLE="WhatsApp"
+            WHATSAPP_PANE=0
+        elif [ "$HAS_DISCORD" = true ]; then
+            CHAN_CMD="node dist/discord-client.js"
+            CHAN_TITLE="Discord"
+        else
+            CHAN_CMD="node dist/telegram-client.js"
+            CHAN_TITLE="Telegram"
+        fi
+
+        tmux send-keys -t "$TMUX_SESSION:0.0" "cd '$SCRIPT_DIR' && $CHAN_CMD" C-m
         tmux send-keys -t "$TMUX_SESSION:0.1" "cd '$SCRIPT_DIR' && node dist/queue-processor.js" C-m
         tmux send-keys -t "$TMUX_SESSION:0.2" "cd '$SCRIPT_DIR' && ./heartbeat-cron.sh" C-m
         tmux send-keys -t "$TMUX_SESSION:0.3" "cd '$SCRIPT_DIR' && $LOG_TAIL_CMD" C-m
 
-        tmux select-pane -t "$TMUX_SESSION:0.0" -T "WhatsApp"
+        tmux select-pane -t "$TMUX_SESSION:0.0" -T "$CHAN_TITLE"
         tmux select-pane -t "$TMUX_SESSION:0.1" -T "Queue"
         tmux select-pane -t "$TMUX_SESSION:0.2" -T "Heartbeat"
         tmux select-pane -t "$TMUX_SESSION:0.3" -T "Logs"
 
         PANE_COUNT=4
-        WHATSAPP_PANE=0
     fi
 
     echo ""
-    echo -e "${GREEN}✓ TinyClaw started${NC}"
+    echo -e "${GREEN}✓ Kitebot started${NC}"
     echo ""
 
     # WhatsApp QR code flow — only when WhatsApp is being started
@@ -211,8 +269,8 @@ start_daemon() {
         echo -e "${YELLOW}📱 Starting WhatsApp client...${NC}"
         echo ""
 
-        QR_FILE="$SCRIPT_DIR/.tinyclaw/channels/whatsapp_qr.txt"
-        READY_FILE="$SCRIPT_DIR/.tinyclaw/channels/whatsapp_ready"
+        QR_FILE="$SCRIPT_DIR/.kitebot/channels/whatsapp_qr.txt"
+        READY_FILE="$SCRIPT_DIR/.kitebot/channels/whatsapp_ready"
         QR_DISPLAYED=false
 
         # Poll for ready flag (up to 60 seconds)
@@ -267,22 +325,22 @@ start_daemon() {
             echo ""
             echo -e "${RED}⚠️  WhatsApp didn't connect within 60 seconds${NC}"
             echo ""
-            echo -e "${YELLOW}Try restarting TinyClaw:${NC}"
-            echo -e "  ${GREEN}./tinyclaw.sh restart${NC}"
+            echo -e "${YELLOW}Try restarting Kitebot:${NC}"
+            echo -e "  ${GREEN}./kitebot.sh restart${NC}"
             echo ""
             echo "Or check WhatsApp client status:"
             echo -e "  ${GREEN}tmux attach -t $TMUX_SESSION${NC}"
             echo ""
             echo "Or check logs:"
-            echo -e "  ${GREEN}./tinyclaw.sh logs whatsapp${NC}"
+            echo -e "  ${GREEN}./kitebot.sh logs whatsapp${NC}"
             echo ""
         fi
     fi
 
     echo ""
     echo -e "${GREEN}Commands:${NC}"
-    echo "  Status:  ./tinyclaw.sh status"
-    echo "  Logs:    ./tinyclaw.sh logs [whatsapp|discord|queue]"
+    echo "  Status:  ./kitebot.sh status"
+    echo "  Logs:    ./kitebot.sh logs [whatsapp|discord|queue]"
     echo "  Attach:  tmux attach -t $TMUX_SESSION"
     echo ""
 
@@ -291,7 +349,7 @@ start_daemon() {
 
 # Stop daemon
 stop_daemon() {
-    log "Stopping TinyClaw..."
+    log "Stopping Kitebot..."
 
     if session_exists; then
         tmux kill-session -t "$TMUX_SESSION"
@@ -300,10 +358,11 @@ stop_daemon() {
     # Kill any remaining processes
     pkill -f "dist/whatsapp-client.js" || true
     pkill -f "dist/discord-client.js" || true
+    pkill -f "dist/telegram-client.js" || true
     pkill -f "dist/queue-processor.js" || true
     pkill -f "heartbeat-cron.sh" || true
 
-    echo -e "${GREEN}✓ TinyClaw stopped${NC}"
+    echo -e "${GREEN}✓ Kitebot stopped${NC}"
     log "Daemon stopped"
 }
 
@@ -325,7 +384,7 @@ send_message() {
 
 # Status
 status_daemon() {
-    echo -e "${BLUE}TinyClaw Status${NC}"
+    echo -e "${BLUE}Kitebot Status${NC}"
     echo "==============="
     echo ""
 
@@ -334,12 +393,12 @@ status_daemon() {
         echo "  Attach: tmux attach -t $TMUX_SESSION"
     else
         echo -e "Tmux Session: ${RED}Not Running${NC}"
-        echo "  Start: ./tinyclaw.sh start"
+        echo "  Start: ./kitebot.sh start"
     fi
 
     echo ""
 
-    READY_FILE="$SCRIPT_DIR/.tinyclaw/channels/whatsapp_ready"
+    READY_FILE="$SCRIPT_DIR/.kitebot/channels/whatsapp_ready"
 
     if pgrep -f "dist/whatsapp-client.js" > /dev/null; then
         if [ -f "$READY_FILE" ]; then
@@ -355,6 +414,12 @@ status_daemon() {
         echo -e "Discord Client:  ${GREEN}Running${NC}"
     else
         echo -e "Discord Client:  ${RED}Not Running${NC}"
+    fi
+
+    if pgrep -f "dist/telegram-client.js" > /dev/null; then
+        echo -e "Telegram Client: ${GREEN}Running${NC}"
+    else
+        echo -e "Telegram Client: ${RED}Not Running${NC}"
     fi
 
     if pgrep -f "dist/queue-processor.js" > /dev/null; then
@@ -380,6 +445,11 @@ status_daemon() {
     tail -n 5 "$LOG_DIR/discord.log" 2>/dev/null || echo "  No Discord activity yet"
 
     echo ""
+    echo "Recent Telegram Activity:"
+    echo "────────────────────────"
+    tail -n 5 "$LOG_DIR/telegram.log" 2>/dev/null || echo "  No Telegram activity yet"
+
+    echo ""
     echo "Recent Heartbeats:"
     echo "─────────────────"
     tail -n 3 "$LOG_DIR/heartbeat.log" 2>/dev/null || echo "  No heartbeat logs yet"
@@ -401,14 +471,20 @@ logs() {
         discord|dc)
             tail -f "$LOG_DIR/discord.log"
             ;;
+        telegram|tg)
+            tail -f "$LOG_DIR/telegram.log"
+            ;;
         heartbeat|hb)
             tail -f "$LOG_DIR/heartbeat.log"
             ;;
         daemon|all)
             tail -f "$LOG_DIR/daemon.log"
             ;;
+        queue|q)
+            tail -f "$LOG_DIR/queue.log"
+            ;;
         *)
-            echo "Usage: $0 logs [whatsapp|discord|heartbeat|daemon]"
+            echo "Usage: $0 logs [whatsapp|discord|telegram|heartbeat|daemon|queue]"
             ;;
     esac
 }
@@ -440,7 +516,7 @@ case "${1:-}" in
         ;;
     reset)
         echo -e "${YELLOW}🔄 Resetting conversation...${NC}"
-        touch "$SCRIPT_DIR/.tinyclaw/reset_flag"
+        touch "$SCRIPT_DIR/.kitebot/reset_flag"
         echo -e "${GREEN}✓ Reset flag set${NC}"
         echo ""
         echo "The next message will start a fresh conversation (without -c)."
@@ -451,30 +527,38 @@ case "${1:-}" in
             case "$3" in
                 whatsapp)
                     echo -e "${YELLOW}🔄 Resetting WhatsApp authentication...${NC}"
-                    rm -rf "$SCRIPT_DIR/.tinyclaw/whatsapp-session"
-                    rm -f "$SCRIPT_DIR/.tinyclaw/channels/whatsapp_ready"
-                    rm -f "$SCRIPT_DIR/.tinyclaw/channels/whatsapp_qr.txt"
+                    rm -rf "$SCRIPT_DIR/.kitebot/whatsapp-session"
+                    rm -f "$SCRIPT_DIR/.kitebot/channels/whatsapp_ready"
+                    rm -f "$SCRIPT_DIR/.kitebot/channels/whatsapp_qr.txt"
                     rm -rf "$SCRIPT_DIR/.wwebjs_cache"
                     echo -e "${GREEN}✓ WhatsApp session cleared${NC}"
                     echo ""
-                    echo "Restart TinyClaw to re-authenticate:"
-                    echo -e "  ${GREEN}./tinyclaw.sh restart${NC}"
+                    echo "Restart Kitebot to re-authenticate:"
+                    echo -e "  ${GREEN}./kitebot.sh restart${NC}"
                     ;;
                 discord)
                     echo -e "${YELLOW}🔄 Resetting Discord authentication...${NC}"
                     echo ""
                     echo "To reset Discord, run the setup wizard to update your bot token:"
-                    echo -e "  ${GREEN}./tinyclaw.sh setup${NC}"
+                    echo -e "  ${GREEN}./kitebot.sh setup${NC}"
                     echo ""
-                    echo "Or manually edit .tinyclaw/settings.json to change discord_bot_token"
+                    echo "Or manually edit .kitebot/settings.json to change discord_bot_token"
+                    ;;
+                telegram)
+                    echo -e "${YELLOW}🔄 Resetting Telegram authentication...${NC}"
+                    echo ""
+                    echo "To reset Telegram, run the setup wizard to update your bot token:"
+                    echo -e "  ${GREEN}./kitebot.sh setup${NC}"
+                    echo ""
+                    echo "Or manually edit .kitebot/settings.json to change telegram_bot_token"
                     ;;
                 *)
-                    echo "Usage: $0 channels reset {whatsapp|discord}"
+                    echo "Usage: $0 channels reset {whatsapp|discord|telegram}"
                     exit 1
                     ;;
             esac
         else
-            echo "Usage: $0 channels reset {whatsapp|discord}"
+            echo "Usage: $0 channels reset {whatsapp|discord|telegram}"
             exit 1
         fi
         ;;
@@ -490,7 +574,7 @@ case "${1:-}" in
             fi
         else
             case "$2" in
-                sonnet|opus)
+                sonnet|opus|haiku)
                     if [ ! -f "$SETTINGS_FILE" ]; then
                         echo -e "${RED}No settings file found. Run setup first.${NC}"
                         exit 1
@@ -503,17 +587,21 @@ case "${1:-}" in
                         sed -i "s/\"model\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"model\": \"$2\"/" "$SETTINGS_FILE"
                     fi
 
+                    # Update the .kitebot/model file too
+                    echo "$2" > "$SCRIPT_DIR/.kitebot/model"
+
                     echo -e "${GREEN}✓ Model switched to: $2${NC}"
                     echo ""
                     echo "Note: This affects the queue processor. Changes take effect on next message."
                     ;;
                 *)
-                    echo "Usage: $0 model {sonnet|opus}"
+                    echo "Usage: $0 model {sonnet|opus|haiku}"
                     echo ""
                     echo "Examples:"
                     echo "  $0 model          # Show current model"
-                    echo "  $0 model sonnet   # Switch to Sonnet"
-                    echo "  $0 model opus     # Switch to Opus"
+                    echo "  $0 model sonnet   # Switch to Sonnet 4.5"
+                    echo "  $0 model opus     # Switch to Opus 4.6"
+                    echo "  $0 model haiku    # Switch to Haiku 4.5"
                     exit 1
                     ;;
             esac
@@ -526,21 +614,21 @@ case "${1:-}" in
         "$SCRIPT_DIR/setup-wizard.sh"
         ;;
     *)
-        echo -e "${BLUE}TinyClaw Simple - Claude Code + WhatsApp + Discord${NC}"
+        echo -e "${BLUE}Kitebot Simple - Claude Code + WhatsApp + Discord + Telegram${NC}"
         echo ""
         echo "Usage: $0 {start|stop|restart|status|setup|send|logs|reset|channels|model|attach}"
         echo ""
         echo "Commands:"
-        echo "  start                    Start TinyClaw"
+        echo "  start                    Start Kitebot"
         echo "  stop                     Stop all processes"
-        echo "  restart                  Restart TinyClaw"
+        echo "  restart                  Restart Kitebot"
         echo "  status                   Show current status"
         echo "  setup                    Run setup wizard (change channels/model/heartbeat)"
         echo "  send <msg>               Send message to Claude manually"
-        echo "  logs [type]              View logs (whatsapp|discord|heartbeat|daemon|queue)"
+        echo "  logs [type]              View logs (whatsapp|discord|telegram|heartbeat|daemon|queue)"
         echo "  reset                    Reset conversation (next message starts fresh)"
-        echo "  channels reset <channel> Reset channel authentication (whatsapp|discord)"
-        echo "  model [sonnet|opus]      Show or switch Claude model"
+        echo "  channels reset <channel> Reset channel authentication (whatsapp|discord|telegram)"
+        echo "  model [sonnet|opus|haiku] Show or switch Claude model"
         echo "  attach                   Attach to tmux session"
         echo ""
         echo "Examples:"
@@ -549,7 +637,7 @@ case "${1:-}" in
         echo "  $0 model opus"
         echo "  $0 send 'What time is it?'"
         echo "  $0 channels reset whatsapp"
-        echo "  $0 logs discord"
+        echo "  $0 logs telegram"
         echo ""
         exit 1
         ;;

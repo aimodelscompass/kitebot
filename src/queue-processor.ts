@@ -9,17 +9,18 @@ import fs from 'fs';
 import path from 'path';
 
 const SCRIPT_DIR = path.resolve(__dirname, '..');
-const QUEUE_INCOMING = path.join(SCRIPT_DIR, '.tinyclaw/queue/incoming');
-const QUEUE_OUTGOING = path.join(SCRIPT_DIR, '.tinyclaw/queue/outgoing');
-const QUEUE_PROCESSING = path.join(SCRIPT_DIR, '.tinyclaw/queue/processing');
-const LOG_FILE = path.join(SCRIPT_DIR, '.tinyclaw/logs/queue.log');
-const RESET_FLAG = path.join(SCRIPT_DIR, '.tinyclaw/reset_flag');
-const MODEL_CONFIG = path.join(SCRIPT_DIR, '.tinyclaw/model');
+const QUEUE_INCOMING = path.join(SCRIPT_DIR, '.kitebot/queue/incoming');
+const QUEUE_OUTGOING = path.join(SCRIPT_DIR, '.kitebot/queue/outgoing');
+const QUEUE_PROCESSING = path.join(SCRIPT_DIR, '.kitebot/queue/processing');
+const LOG_FILE = path.join(SCRIPT_DIR, '.kitebot/logs/queue.log');
+const RESET_FLAG = path.join(SCRIPT_DIR, '.kitebot/reset_flag');
+const MODEL_CONFIG = path.join(SCRIPT_DIR, '.kitebot/model');
 
 // Model name mapping
 const MODEL_IDS: Record<string, string> = {
     'sonnet': 'claude-sonnet-4-5',
     'opus': 'claude-opus-4-6',
+    'haiku': 'claude-haiku-4-5',
 };
 
 function getModelFlag(): string {

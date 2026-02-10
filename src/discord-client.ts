@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Discord Client for TinyClaw Simple
+ * Discord Client for Kitebot Simple
  * Writes DM messages to queue and reads responses
  * Does NOT call Claude directly - that's handled by queue-processor
  */
@@ -11,9 +11,9 @@ import fs from 'fs';
 import path from 'path';
 
 const SCRIPT_DIR = path.resolve(__dirname, '..');
-const QUEUE_INCOMING = path.join(SCRIPT_DIR, '.tinyclaw/queue/incoming');
-const QUEUE_OUTGOING = path.join(SCRIPT_DIR, '.tinyclaw/queue/outgoing');
-const LOG_FILE = path.join(SCRIPT_DIR, '.tinyclaw/logs/discord.log');
+const QUEUE_INCOMING = path.join(SCRIPT_DIR, '.kitebot/queue/incoming');
+const QUEUE_OUTGOING = path.join(SCRIPT_DIR, '.kitebot/queue/outgoing');
+const LOG_FILE = path.join(SCRIPT_DIR, '.kitebot/logs/discord.log');
 
 // Ensure directories exist
 [QUEUE_INCOMING, QUEUE_OUTGOING, path.dirname(LOG_FILE)].forEach(dir => {
@@ -145,7 +145,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
             log('INFO', 'Reset command received');
 
             // Create reset flag
-            const resetFlagPath = path.join(SCRIPT_DIR, '.tinyclaw/reset_flag');
+            const resetFlagPath = path.join(SCRIPT_DIR, '.kitebot/reset_flag');
             fs.writeFileSync(resetFlagPath, 'reset');
 
             // Reply immediately

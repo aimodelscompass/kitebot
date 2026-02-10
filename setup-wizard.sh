@@ -1,8 +1,8 @@
 #!/bin/bash
-# TinyClaw Setup Wizard
+# Kitebot Setup Wizard
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SETTINGS_FILE="$SCRIPT_DIR/.tinyclaw/settings.json"
+SETTINGS_FILE="$SCRIPT_DIR/.kitebot/settings.json"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -10,11 +10,11 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-mkdir -p "$SCRIPT_DIR/.tinyclaw"
+mkdir -p "$SCRIPT_DIR/.kitebot"
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}  TinyClaw - Setup Wizard${NC}"
+echo -e "${GREEN}  Kitebot - Setup Wizard${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -23,14 +23,16 @@ echo "Which messaging channel do you want to use?"
 echo ""
 echo "  1) Discord"
 echo "  2) WhatsApp"
-echo "  3) Both"
+echo "  3) Telegram"
+echo "  4) All"
 echo ""
-read -rp "Choose [1-3]: " CHANNEL_CHOICE
+read -rp "Choose [1-4]: " CHANNEL_CHOICE
 
 case "$CHANNEL_CHOICE" in
     1) CHANNEL="discord" ;;
     2) CHANNEL="whatsapp" ;;
-    3) CHANNEL="both" ;;
+    3) CHANNEL="telegram" ;;
+    4) CHANNEL="all" ;;
     *)
         echo -e "${RED}Invalid choice${NC}"
         exit 1
@@ -41,7 +43,7 @@ echo ""
 
 # Discord bot token (if needed)
 DISCORD_TOKEN=""
-if [[ "$CHANNEL" == "discord" ]] || [[ "$CHANNEL" == "both" ]]; then
+if [[ "$CHANNEL" == "discord" ]] || [[ "$CHANNEL" == "all" ]]; then
     echo "Enter your Discord bot token:"
     echo -e "${YELLOW}(Get one at: https://discord.com/developers/applications)${NC}"
     echo ""
@@ -55,17 +57,35 @@ if [[ "$CHANNEL" == "discord" ]] || [[ "$CHANNEL" == "both" ]]; then
     echo ""
 fi
 
+# Telegram bot token (if needed)
+TELEGRAM_TOKEN=""
+if [[ "$CHANNEL" == "telegram" ]] || [[ "$CHANNEL" == "all" ]]; then
+    echo "Enter your Telegram bot token:"
+    echo -e "${YELLOW}(Get one at: https://t.me/botfather)${NC}"
+    echo ""
+    read -rp "Token: " TELEGRAM_TOKEN
+
+    if [ -z "$TELEGRAM_TOKEN" ]; then
+        echo -e "${RED}Telegram bot token is required${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Telegram token saved${NC}"
+    echo ""
+fi
+
 # Model selection
 echo "Which Claude model?"
 echo ""
-echo "  1) Sonnet  (fast, recommended)"
-echo "  2) Opus    (smartest)"
+echo "  1) Sonnet 4.5 (balanced)"
+echo "  2) Opus 4.6   (smartest)"
+echo "  3) Haiku 4.5  (fastest)"
 echo ""
-read -rp "Choose [1-2]: " MODEL_CHOICE
+read -rp "Choose [1-3]: " MODEL_CHOICE
 
 case "$MODEL_CHOICE" in
     1) MODEL="sonnet" ;;
     2) MODEL="opus" ;;
+    3) MODEL="haiku" ;;
     *)
         echo -e "${RED}Invalid choice${NC}"
         exit 1
@@ -95,12 +115,16 @@ cat > "$SETTINGS_FILE" <<EOF
   "channel": "$CHANNEL",
   "model": "$MODEL",
   "discord_bot_token": "$DISCORD_TOKEN",
+  "telegram_bot_token": "$TELEGRAM_TOKEN",
   "heartbeat_interval": $HEARTBEAT_INTERVAL
 }
 EOF
 
-echo -e "${GREEN}✓ Configuration saved to .tinyclaw/settings.json${NC}"
+# Write model file for queue processor
+echo "$MODEL" > "$SCRIPT_DIR/.kitebot/model"
+
+echo -e "${GREEN}✓ Configuration saved to .kitebot/settings.json${NC}"
 echo ""
-echo "You can now start TinyClaw:"
-echo -e "  ${GREEN}./tinyclaw.sh start${NC}"
+echo "You can now start Kitebot:"
+echo -e "  ${GREEN}./kitebot.sh start${NC}"
 echo ""
