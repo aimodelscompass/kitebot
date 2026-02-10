@@ -1,7 +1,7 @@
 {
-  "name": "tinyclaw",
+  "name": "kitebot",
   "version": "1.0.0",
-  "description": "TinyClaw with WhatsApp and Discord integration",
+  "description": "Kitebot with WhatsApp, Discord and Telegram integration",
   "main": "dist/whatsapp-client.js",
   "scripts": {
     "build": "tsc",

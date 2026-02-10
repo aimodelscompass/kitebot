@@ -1,10 +1,10 @@
 #!/bin/bash
-# TinyClaw Simple - Main daemon using tmux + claude -c -p + WhatsApp + Discord
+# Kitebot Simple - Main daemon using tmux + claude -c -p + WhatsApp + Discord
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TMUX_SESSION="tinyclaw"
-LOG_DIR="$SCRIPT_DIR/.tinyclaw/logs"
-SETTINGS_FILE="$SCRIPT_DIR/.tinyclaw/settings.json"
+TMUX_SESSION="kitebot"
+LOG_DIR="$SCRIPT_DIR/.kitebot/logs"
+SETTINGS_FILE="$SCRIPT_DIR/.kitebot/settings.json"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -44,7 +44,7 @@ start_daemon() {
         return 1
     fi
 
-    log "Starting TinyClaw daemon..."
+    log "Starting Kitebot daemon..."
 
     # Check if Node.js dependencies are installed
     if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
@@ -86,7 +86,7 @@ start_daemon() {
         all) HAS_DISCORD=true; HAS_WHATSAPP=true; HAS_TELEGRAM=true ;;
         *)
             echo -e "${RED}Invalid channel config: $CHANNEL${NC}"
-            echo "Run './tinyclaw.sh setup' to reconfigure"
+            echo "Run './kitebot.sh setup' to reconfigure"
             return 1
             ;;
     esac
@@ -94,7 +94,7 @@ start_daemon() {
     # Validate Telegram token if Telegram is enabled
     if [ "$HAS_TELEGRAM" = true ] && [ -z "$TELEGRAM_TOKEN" ]; then
         echo -e "${RED}Telegram is configured but bot token is missing${NC}"
-        echo "Run './tinyclaw.sh setup' to reconfigure"
+        echo "Run './kitebot.sh setup' to reconfigure"
         return 1
     fi
 
@@ -126,12 +126,12 @@ start_daemon() {
     echo ""
 
     # Build log tail command based on available channels
-    LOG_TAIL_CMD="tail -f .tinyclaw/logs/queue.log"
-    [ "$HAS_DISCORD" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .tinyclaw/logs/discord.log"
-    [ "$HAS_WHATSAPP" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .tinyclaw/logs/whatsapp.log"
-    [ "$HAS_TELEGRAM" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .tinyclaw/logs/telegram.log"
+    LOG_TAIL_CMD="tail -f .kitebot/logs/queue.log"
+    [ "$HAS_DISCORD" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .kitebot/logs/discord.log"
+    [ "$HAS_WHATSAPP" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .kitebot/logs/whatsapp.log"
+    [ "$HAS_TELEGRAM" = true ] && LOG_TAIL_CMD="$LOG_TAIL_CMD .kitebot/logs/telegram.log"
 
-    tmux new-session -d -s "$TMUX_SESSION" -n "tinyclaw" -c "$SCRIPT_DIR"
+    tmux new-session -d -s "$TMUX_SESSION" -n "kitebot" -c "$SCRIPT_DIR"
 
     # Count channels
     NUM_CHANNELS=0
@@ -261,7 +261,7 @@ start_daemon() {
     fi
 
     echo ""
-    echo -e "${GREEN}✓ TinyClaw started${NC}"
+    echo -e "${GREEN}✓ Kitebot started${NC}"
     echo ""
 
     # WhatsApp QR code flow — only when WhatsApp is being started
@@ -269,8 +269,8 @@ start_daemon() {
         echo -e "${YELLOW}📱 Starting WhatsApp client...${NC}"
         echo ""
 
-        QR_FILE="$SCRIPT_DIR/.tinyclaw/channels/whatsapp_qr.txt"
-        READY_FILE="$SCRIPT_DIR/.tinyclaw/channels/whatsapp_ready"
+        QR_FILE="$SCRIPT_DIR/.kitebot/channels/whatsapp_qr.txt"
+        READY_FILE="$SCRIPT_DIR/.kitebot/channels/whatsapp_ready"
         QR_DISPLAYED=false
 
         # Poll for ready flag (up to 60 seconds)
@@ -325,22 +325,22 @@ start_daemon() {
             echo ""
             echo -e "${RED}⚠️  WhatsApp didn't connect within 60 seconds${NC}"
             echo ""
-            echo -e "${YELLOW}Try restarting TinyClaw:${NC}"
-            echo -e "  ${GREEN}./tinyclaw.sh restart${NC}"
+            echo -e "${YELLOW}Try restarting Kitebot:${NC}"
+            echo -e "  ${GREEN}./kitebot.sh restart${NC}"
             echo ""
             echo "Or check WhatsApp client status:"
             echo -e "  ${GREEN}tmux attach -t $TMUX_SESSION${NC}"
             echo ""
             echo "Or check logs:"
-            echo -e "  ${GREEN}./tinyclaw.sh logs whatsapp${NC}"
+            echo -e "  ${GREEN}./kitebot.sh logs whatsapp${NC}"
             echo ""
         fi
     fi
 
     echo ""
     echo -e "${GREEN}Commands:${NC}"
-    echo "  Status:  ./tinyclaw.sh status"
-    echo "  Logs:    ./tinyclaw.sh logs [whatsapp|discord|queue]"
+    echo "  Status:  ./kitebot.sh status"
+    echo "  Logs:    ./kitebot.sh logs [whatsapp|discord|queue]"
     echo "  Attach:  tmux attach -t $TMUX_SESSION"
     echo ""
 
@@ -349,7 +349,7 @@ start_daemon() {
 
 # Stop daemon
 stop_daemon() {
-    log "Stopping TinyClaw..."
+    log "Stopping Kitebot..."
 
     if session_exists; then
         tmux kill-session -t "$TMUX_SESSION"
@@ -362,7 +362,7 @@ stop_daemon() {
     pkill -f "dist/queue-processor.js" || true
     pkill -f "heartbeat-cron.sh" || true
 
-    echo -e "${GREEN}✓ TinyClaw stopped${NC}"
+    echo -e "${GREEN}✓ Kitebot stopped${NC}"
     log "Daemon stopped"
 }
 
@@ -384,7 +384,7 @@ send_message() {
 
 # Status
 status_daemon() {
-    echo -e "${BLUE}TinyClaw Status${NC}"
+    echo -e "${BLUE}Kitebot Status${NC}"
     echo "==============="
     echo ""
 
@@ -393,12 +393,12 @@ status_daemon() {
         echo "  Attach: tmux attach -t $TMUX_SESSION"
     else
         echo -e "Tmux Session: ${RED}Not Running${NC}"
-        echo "  Start: ./tinyclaw.sh start"
+        echo "  Start: ./kitebot.sh start"
     fi
 
     echo ""
 
-    READY_FILE="$SCRIPT_DIR/.tinyclaw/channels/whatsapp_ready"
+    READY_FILE="$SCRIPT_DIR/.kitebot/channels/whatsapp_ready"
 
     if pgrep -f "dist/whatsapp-client.js" > /dev/null; then
         if [ -f "$READY_FILE" ]; then
@@ -516,7 +516,7 @@ case "${1:-}" in
         ;;
     reset)
         echo -e "${YELLOW}🔄 Resetting conversation...${NC}"
-        touch "$SCRIPT_DIR/.tinyclaw/reset_flag"
+        touch "$SCRIPT_DIR/.kitebot/reset_flag"
         echo -e "${GREEN}✓ Reset flag set${NC}"
         echo ""
         echo "The next message will start a fresh conversation (without -c)."
@@ -527,30 +527,30 @@ case "${1:-}" in
             case "$3" in
                 whatsapp)
                     echo -e "${YELLOW}🔄 Resetting WhatsApp authentication...${NC}"
-                    rm -rf "$SCRIPT_DIR/.tinyclaw/whatsapp-session"
-                    rm -f "$SCRIPT_DIR/.tinyclaw/channels/whatsapp_ready"
-                    rm -f "$SCRIPT_DIR/.tinyclaw/channels/whatsapp_qr.txt"
+                    rm -rf "$SCRIPT_DIR/.kitebot/whatsapp-session"
+                    rm -f "$SCRIPT_DIR/.kitebot/channels/whatsapp_ready"
+                    rm -f "$SCRIPT_DIR/.kitebot/channels/whatsapp_qr.txt"
                     rm -rf "$SCRIPT_DIR/.wwebjs_cache"
                     echo -e "${GREEN}✓ WhatsApp session cleared${NC}"
                     echo ""
-                    echo "Restart TinyClaw to re-authenticate:"
-                    echo -e "  ${GREEN}./tinyclaw.sh restart${NC}"
+                    echo "Restart Kitebot to re-authenticate:"
+                    echo -e "  ${GREEN}./kitebot.sh restart${NC}"
                     ;;
                 discord)
                     echo -e "${YELLOW}🔄 Resetting Discord authentication...${NC}"
                     echo ""
                     echo "To reset Discord, run the setup wizard to update your bot token:"
-                    echo -e "  ${GREEN}./tinyclaw.sh setup${NC}"
+                    echo -e "  ${GREEN}./kitebot.sh setup${NC}"
                     echo ""
-                    echo "Or manually edit .tinyclaw/settings.json to change discord_bot_token"
+                    echo "Or manually edit .kitebot/settings.json to change discord_bot_token"
                     ;;
                 telegram)
                     echo -e "${YELLOW}🔄 Resetting Telegram authentication...${NC}"
                     echo ""
                     echo "To reset Telegram, run the setup wizard to update your bot token:"
-                    echo -e "  ${GREEN}./tinyclaw.sh setup${NC}"
+                    echo -e "  ${GREEN}./kitebot.sh setup${NC}"
                     echo ""
-                    echo "Or manually edit .tinyclaw/settings.json to change telegram_bot_token"
+                    echo "Or manually edit .kitebot/settings.json to change telegram_bot_token"
                     ;;
                 *)
                     echo "Usage: $0 channels reset {whatsapp|discord|telegram}"
@@ -587,8 +587,8 @@ case "${1:-}" in
                         sed -i "s/\"model\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"model\": \"$2\"/" "$SETTINGS_FILE"
                     fi
 
-                    # Update the .tinyclaw/model file too
-                    echo "$2" > "$SCRIPT_DIR/.tinyclaw/model"
+                    # Update the .kitebot/model file too
+                    echo "$2" > "$SCRIPT_DIR/.kitebot/model"
 
                     echo -e "${GREEN}✓ Model switched to: $2${NC}"
                     echo ""
@@ -614,14 +614,14 @@ case "${1:-}" in
         "$SCRIPT_DIR/setup-wizard.sh"
         ;;
     *)
-        echo -e "${BLUE}TinyClaw Simple - Claude Code + WhatsApp + Discord + Telegram${NC}"
+        echo -e "${BLUE}Kitebot Simple - Claude Code + WhatsApp + Discord + Telegram${NC}"
         echo ""
         echo "Usage: $0 {start|stop|restart|status|setup|send|logs|reset|channels|model|attach}"
         echo ""
         echo "Commands:"
-        echo "  start                    Start TinyClaw"
+        echo "  start                    Start Kitebot"
         echo "  stop                     Stop all processes"
-        echo "  restart                  Restart TinyClaw"
+        echo "  restart                  Restart Kitebot"
         echo "  status                   Show current status"
         echo "  setup                    Run setup wizard (change channels/model/heartbeat)"
         echo "  send <msg>               Send message to Claude manually"

@@ -1,8 +1,8 @@
 #!/bin/bash
-# TinyClaw Setup Wizard
+# Kitebot Setup Wizard
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SETTINGS_FILE="$SCRIPT_DIR/.tinyclaw/settings.json"
+SETTINGS_FILE="$SCRIPT_DIR/.kitebot/settings.json"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -10,11 +10,11 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-mkdir -p "$SCRIPT_DIR/.tinyclaw"
+mkdir -p "$SCRIPT_DIR/.kitebot"
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}  TinyClaw - Setup Wizard${NC}"
+echo -e "${GREEN}  Kitebot - Setup Wizard${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -121,10 +121,10 @@ cat > "$SETTINGS_FILE" <<EOF
 EOF
 
 # Write model file for queue processor
-echo "$MODEL" > "$SCRIPT_DIR/.tinyclaw/model"
+echo "$MODEL" > "$SCRIPT_DIR/.kitebot/model"
 
-echo -e "${GREEN}✓ Configuration saved to .tinyclaw/settings.json${NC}"
+echo -e "${GREEN}✓ Configuration saved to .kitebot/settings.json${NC}"
 echo ""
-echo "You can now start TinyClaw:"
-echo -e "  ${GREEN}./tinyclaw.sh start${NC}"
+echo "You can now start Kitebot:"
+echo -e "  ${GREEN}./kitebot.sh start${NC}"
 echo ""
