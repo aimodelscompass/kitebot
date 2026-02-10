@@ -20,6 +20,7 @@ const MODEL_CONFIG = path.join(SCRIPT_DIR, '.tinyclaw/model');
 const MODEL_IDS: Record<string, string> = {
     'sonnet': 'claude-sonnet-4-5',
     'opus': 'claude-opus-4-6',
+    'haiku': 'claude-haiku-4-5',
 };
 
 function getModelFlag(): string {

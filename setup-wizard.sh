@@ -23,14 +23,16 @@ echo "Which messaging channel do you want to use?"
 echo ""
 echo "  1) Discord"
 echo "  2) WhatsApp"
-echo "  3) Both"
+echo "  3) Telegram"
+echo "  4) All"
 echo ""
-read -rp "Choose [1-3]: " CHANNEL_CHOICE
+read -rp "Choose [1-4]: " CHANNEL_CHOICE
 
 case "$CHANNEL_CHOICE" in
     1) CHANNEL="discord" ;;
     2) CHANNEL="whatsapp" ;;
-    3) CHANNEL="both" ;;
+    3) CHANNEL="telegram" ;;
+    4) CHANNEL="all" ;;
     *)
         echo -e "${RED}Invalid choice${NC}"
         exit 1
@@ -41,7 +43,7 @@ echo ""
 
 # Discord bot token (if needed)
 DISCORD_TOKEN=""
-if [[ "$CHANNEL" == "discord" ]] || [[ "$CHANNEL" == "both" ]]; then
+if [[ "$CHANNEL" == "discord" ]] || [[ "$CHANNEL" == "all" ]]; then
     echo "Enter your Discord bot token:"
     echo -e "${YELLOW}(Get one at: https://discord.com/developers/applications)${NC}"
     echo ""
@@ -55,17 +57,35 @@ if [[ "$CHANNEL" == "discord" ]] || [[ "$CHANNEL" == "both" ]]; then
     echo ""
 fi
 
+# Telegram bot token (if needed)
+TELEGRAM_TOKEN=""
+if [[ "$CHANNEL" == "telegram" ]] || [[ "$CHANNEL" == "all" ]]; then
+    echo "Enter your Telegram bot token:"
+    echo -e "${YELLOW}(Get one at: https://t.me/botfather)${NC}"
+    echo ""
+    read -rp "Token: " TELEGRAM_TOKEN
+
+    if [ -z "$TELEGRAM_TOKEN" ]; then
+        echo -e "${RED}Telegram bot token is required${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Telegram token saved${NC}"
+    echo ""
+fi
+
 # Model selection
 echo "Which Claude model?"
 echo ""
-echo "  1) Sonnet  (fast, recommended)"
-echo "  2) Opus    (smartest)"
+echo "  1) Sonnet 4.5 (balanced)"
+echo "  2) Opus 4.6   (smartest)"
+echo "  3) Haiku 4.5  (fastest)"
 echo ""
-read -rp "Choose [1-2]: " MODEL_CHOICE
+read -rp "Choose [1-3]: " MODEL_CHOICE
 
 case "$MODEL_CHOICE" in
     1) MODEL="sonnet" ;;
     2) MODEL="opus" ;;
+    3) MODEL="haiku" ;;
     *)
         echo -e "${RED}Invalid choice${NC}"
         exit 1
@@ -95,9 +115,13 @@ cat > "$SETTINGS_FILE" <<EOF
   "channel": "$CHANNEL",
   "model": "$MODEL",
   "discord_bot_token": "$DISCORD_TOKEN",
+  "telegram_bot_token": "$TELEGRAM_TOKEN",
   "heartbeat_interval": $HEARTBEAT_INTERVAL
 }
 EOF
+
+# Write model file for queue processor
+echo "$MODEL" > "$SCRIPT_DIR/.tinyclaw/model"
 
 echo -e "${GREEN}✓ Configuration saved to .tinyclaw/settings.json${NC}"
 echo ""
